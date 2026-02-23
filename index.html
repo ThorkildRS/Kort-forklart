@@ -71,10 +71,9 @@
     position: absolute;
     inset: 0;
     background-image:
-      radial-gradient(circle at 50% 50%, rgba(37,99,235,0.02) 0%, transparent 70%),
       linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
-    background-size: 100% 100%, 40px 40px, 40px 40px;
+    background-size: 40px 40px, 40px 40px;
     pointer-events: none;
     z-index: 0;
     border-radius: 16px;
@@ -501,6 +500,29 @@
     .filters { gap: 4px; }
     .filter-btn { padding: 4px 10px; font-size: 11px; }
     .logo { font-size: 12px; }
+  }
+
+  @media (max-width: 1024px) {
+    .km-wrapper { max-height: 600px; min-height: 450px; }
+    .header { padding: 12px 16px; gap: 10px; }
+    .search-box { max-width: 280px; }
+    .detail-panel { width: 380px; max-width: 90%; }
+    .legend { gap: 10px; }
+    .legend-item { font-size: 11px; }
+    .filters { gap: 5px; }
+    .filter-btn { padding: 5px 12px; font-size: 11px; }
+  }
+
+  @media (max-width: 480px) {
+    .km-wrapper { height: auto; max-height: none; min-height: 400px; border-radius: 8px; }
+    .header { padding: 8px 10px; gap: 6px; }
+    .search-box input { padding: 8px 12px 8px 36px; font-size: 13px; }
+    .search-box::before { left: 12px; top: 9px; font-size: 14px; }
+    .filters { flex-wrap: wrap; }
+    .filter-btn { padding: 3px 8px; font-size: 10px; }
+    .detail-panel { border-radius: 0; }
+    .legend { gap: 6px; }
+    .legend-item { font-size: 9px; }
   }
 </style>
 </head>
