@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>buildingSMART Kunnskapskart</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --bg-panel: #f5f6f8;
+    --bg-panel-hover: #eceef2;
+    --border: #e0e3ea;
+    --text: #1a1f2e;
+    --text-dim: #6b7280;
+    --accent-blue: #2563eb;
+    --accent-teal: #0d9488;
+    --accent-violet: #7c3aed;
+    --accent-amber: #d97706;
+    --accent-rose: #e11d48;
+    --accent-green: #16a34a;
+    --cat-standard: #2563eb;
+    --cat-tjeneste: #0d9488;
+    --cat-iso19650: #7c3aed;
+    --cat-ns8360: #d97706;
+    --cat-tillegg: #e11d48;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
+  .km-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    max-height: 700px;
+    min-height: 480px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  #graph-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 16px;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  svg:active { cursor: grabbing; }
+
+  /* Grid background */
+  #graph-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 50% 50%, rgba(37,99,235,0.02) 0%, transparent 70%),
+      linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 16px;
+  }
+
+  /* Header */
+  .header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(180deg, var(--bg) 60%, transparent);
+    pointer-events: none;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .header > * { pointer-events: auto; }
+
+  .logo {
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-blue);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .search-box {
+    position: relative;
+    max-width: 320px;
+    flex: 1;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 10px 16px 10px 40px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent-blue);
+  }
+
+  .search-box::before {
+    content: '⌕';
+    position: absolute;
+    left: 14px;
+    top: 11px;
+    color: var(--text-dim);
+    font-size: 16px;
+    pointer-events: none;
+  }
+
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    max-height: 320px;
+    overflow-y: auto;
+    display: none;
+    z-index: 400;
+  }
+
+  .search-dropdown.visible {
+    display: block;
+  }
+
+  .search-dropdown-item {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-dropdown-item:last-child {
+    border-bottom: none;
+  }
+
+  .search-dropdown-item:first-child {
+    border-radius: 10px 10px 0 0;
+  }
+
+  .search-dropdown-item:last-child {
+    border-radius: 0 0 10px 10px;
+  }
+
+  .search-dropdown-item:only-child {
+    border-radius: 10px;
+  }
+
+  .search-dropdown-item:hover {
+    background: var(--bg-panel);
+  }
+
+  .search-dropdown-item .sdi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .search-dropdown-item .sdi-abbr {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    min-width: 48px;
+  }
+
+  .search-dropdown-item .sdi-name {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .search-dropdown-item .sdi-cat {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    opacity: 0.7;
+  }
+
+  .search-dropdown-empty {
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* Category filters */
+  .filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover {
+    background: var(--bg-panel-hover);
+    color: var(--text);
+  }
+
+  .filter-btn.active {
+    border-color: var(--cat-color, var(--accent-blue));
+    color: var(--cat-color, var(--accent-blue));
+    background: color-mix(in srgb, var(--cat-color, var(--accent-blue)) 10%, var(--bg-panel));
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    position: absolute;
+    right: -460px;
+    top: 0;
+    bottom: 0;
+    width: 400px;
+    max-width: 85%;
+    background: #ffffff;
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 30px rgba(0,0,0,0.08);
+    z-index: 200;
+    transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 0 16px 16px 0;
+  }
+
+  .detail-panel.open {
+    right: 0;
+  }
+
+  .detail-header {
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .detail-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .detail-close:hover {
+    background: var(--bg-panel-hover);
+    color: var(--text);
+  }
+
+  .detail-abbr {
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .detail-title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .detail-category {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .detail-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    line-height: 1.7;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .detail-body p {
+    margin-bottom: 14px;
+  }
+
+  .detail-body strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .detail-section-title {
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 20px 0 10px;
+  }
+
+  .related-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .related-tag {
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .related-tag:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 300;
+    max-width: 260px;
+  }
+
+  .tooltip .tt-abbr {
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .tooltip .tt-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .tooltip .tt-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Legend */
+  .legend {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    z-index: 100;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* Stats */
+  .stats {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    z-index: 100;
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  /* Node styles in SVG */
+  .node { cursor: pointer; }
+  .node circle {
+    transition: r 0.2s, stroke-width 0.2s;
+  }
+  .node:hover circle {
+    stroke-width: 3;
+  }
+  .node text {
+    font-family: 'DM Sans', sans-serif; font-weight: 600;
+    font-size: 10px;
+    fill: var(--text);
+    pointer-events: none;
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .node .node-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 9px;
+    fill: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .link {
+    stroke: rgba(0,0,0,0.06);
+    stroke-width: 1;
+    transition: stroke 0.2s, stroke-width 0.2s;
+  }
+  .link.highlighted {
+    stroke: rgba(37,99,235,0.35);
+    stroke-width: 2;
+  }
+
+  .node.dimmed circle { opacity: 0.15; }
+  .node.dimmed text { opacity: 0.1; }
+  .link.dimmed { opacity: 0.03; }
+
+  @media (max-width: 768px) {
+    .header { padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+    .search-box { max-width: 100%; order: 3; }
+    .detail-panel { width: 100%; max-width: 100%; border-radius: 0; }
+    .legend { bottom: 6px; left: 10px; gap: 8px; }
+    .legend-item { font-size: 10px; }
+    .stats { display: none; }
+    .filters { gap: 4px; }
+    .filter-btn { padding: 4px 10px; font-size: 11px; }
+    .logo { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="km-wrapper" id="km-wrapper">
+
+<div class="header">
+  <div class="logo">bS Kunnskapskart</div>
+  <div class="search-box">
+    <input type="text" id="search" placeholder="Søk etter begrep eller forkortelse…" autocomplete="off">
+    <div class="search-dropdown" id="search-dropdown"></div>
+  </div>
+  <div class="filters" id="filters"></div>
+</div>
+
+<div id="graph-container">
+  <svg id="svg"></svg>
+</div>
+
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <div>
+      <div class="detail-abbr" id="detail-abbr"></div>
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-category" id="detail-category"></div>
+    </div>
+    <button class="detail-close" id="detail-close">✕</button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tt-abbr" id="tt-abbr"></div>
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-hint">Klikk for detaljer</div>
+</div>
+
+<div class="legend" id="legend"></div>
+<div class="stats" id="stats"></div>
+
+</div><!-- end km-wrapper -->
+
+<script>
+// ============================================================
+// DATA — Legg til nye begreper her!
+// Hver node trenger: id, name, abbr (forkortelse), category, description
+// Koblinger (links): source → target med valgfri label
+// ============================================================
+
+const CATEGORIES = {
+  "standard":   { label: "buildingSMART-standard",  color: "#2563eb" },
+  "tjeneste":   { label: "buildingSMART-tjeneste",   color: "#0d9488" },
+  "iso19650":   { label: "NS-EN ISO 19650",          color: "#7c3aed" },
+  "ns8360":     { label: "NS 8360",                   color: "#d97706" },
+  "tillegg":    { label: "Tillegg",                    color: "#e11d48" },
+};
+
+const nodes = [
+  // buildingSMART-standarder
+  {
+    id: "ifc", abbr: "IFC", name: "Industry Foundation Classes",
+    category: "standard",
+    description: `<p>IFC er en ISO-standard (NS-EN ISO 16739) som er adoptert både i europeisk og norsk standardisering. IFC er en internasjonal standard for byggverksinformasjon som gjør det mulig å utveksle informasjon om byggverk slik at avsender og mottaker har samme oppfatning av hva objektet er, hvor det er, hvilken type og dets egenskaper.</p>
+    <p><strong>Formater:</strong> .ifc (STEP Physical Format/SPF), ifcXML m.fl.</p>
+    <p><strong>Versjoner:</strong> IFC2x3, IFC4, IFC4.3 (nyeste). IFC4.3 omfatter også broer, veier, jernbaner, vannveier og havneanlegg. IFC 4.4 er under utvikling (tunnel). Neste generasjon IFC5 vil baseres på moderne datamodellarkitektur.</p>`
+  },
+  {
+    id: "bcf", abbr: "BCF", name: "BIM Collaboration Format",
+    category: "standard",
+    description: `<p>BCF er et prosessformat som gjør det mulig å kommunisere saker i modellkontekst med visning av gjeldende plassering og tilknytning til aktuelle objekter.</p>
+    <p>BCF gjør det mulig å rapportere en sak og vise andre aktører situasjonen og hvilke objekter saken gjelder, samt beskrive saken med blant annet ord og bilder.</p>`
+  },
+  {
+    id: "ids", abbr: "IDS", name: "Information Delivery Specification",
+    category: "standard",
+    description: `<p>IDS er et åpent format for å beskrive alfanumeriske krav til modellen. IDS kan stille krav til informasjonens struktur, enheter og verdier.</p>
+    <p>Kan blant annet brukes for maskinelt å sjekke modellens alfanumeriske informasjon i forhold til avtalte krav.</p>
+    <p><em>Alfanumerisk = informasjon uttrykt med tall eller bokstaver.</em></p>`
+  },
+  {
+    id: "bsdd", abbr: "bSDD", name: "buildingSMART Data Dictionary",
+    category: "tjeneste",
+    description: `<p>bSDD er buildingSMARTs plattform som sammenstiller dataordbøker. Dataordbøker inneholder entydige definisjoner av begreper.</p>
+    <p>bSDD sikrer at avsender og mottaker, også i et langsiktig tidsperspektiv, har lik forståelse av informasjon. bSDD gjør det mulig å oversette begreper mellom språk og datamodeller både menneske- og maskintolkbart.</p>`
+  },
+  {
+    id: "validation", abbr: "IFC Val.", name: "IFC Validation Service",
+    category: "tjeneste",
+    description: `<p>En tjeneste som sjekker IFC-filer opp mot formelle krav i standarden, og kontrollerer om informasjonen følger den tekniske strukturen som er definert for en gitt IFC-versjon.</p>
+    <p>Valideringstjenesten er særlig nyttig for nyere versjoner av IFC, som IFC4.3, der sertifiseringsordninger fortsatt er under utvikling. Validering erstatter ikke sertifisering eller funksjonell testing, men er et viktig supplement.</p>`
+  },
+  {
+    id: "opencde", abbr: "openCDE", name: "open Common Data Environment API",
+    category: "tjeneste",
+    description: `<p>Et standardisert sett av grensesnitt (API) for å lette utveksling og deling av informasjon mellom ulike felles datamiljøer (CDE). Disse API-ene sikrer interoperabilitet mellom ulike systemer.</p>
+    <p><strong>Inkluderer:</strong> Foundation API, Documents API, BCF API og bSDD API.</p>`
+  },
+
+  // ISO 19650-begreper
+  {
+    id: "pim", abbr: "PIM", name: "Prosjektinformasjonsmodell",
+    category: "iso19650",
+    description: `<p>En formell modell som brukes i prosjektfasen for å møte bestillers krav til informasjonsutveksling (EIR) i henhold til avtalt BIM-gjennomføringsplan (BEP).</p>
+    <p>PIM sikrer at all prosjektinformasjon er strukturert og oppdatert. Alle prosjekterende fag med hovedansvar for bygningselementer lager egne fagmodeller. Disiplinleder har formelt ansvar for hver fags PIM.</p>`
+  },
+  {
+    id: "aim", abbr: "AIM", name: "Asset Information Model",
+    category: "iso19650",
+    description: `<p>En modell som brukes i forvaltningsfasen for å benytte og forvalte informasjon om byggverket. AIM er kritisk for effektiv drift og vedlikehold.</p>
+    <p>AIM forutsetter som minimum en integrasjon av geometriske modeller i FDV-systemet. Begrepene AIM og Digital tvilling benyttes ofte om hverandre, men Digital tvilling forutsetter sanntidsoppdatering.</p>`
+  },
+  {
+    id: "oir", abbr: "OIR", name: "Organization Information Requirements",
+    category: "iso19650",
+    description: `<p>Informasjonsbehov relatert til bestillerorganisasjonens strategiske mål på høyt nivå.</p>
+    <p>Disse kravene kan oppstå fra strategisk forretningsdrift, forvaltning av byggverk, porteføljeplanlegging, lovpålagte forpliktelser eller utforming av policy.</p>`
+  },
+  {
+    id: "air", abbr: "AIR", name: "Asset Information Requirements",
+    category: "iso19650",
+    description: `<p>Informasjonsbehov for forvaltningen av byggverket. AIR er svært viktig for å sikre effektiv forvaltning.</p>
+    <p>Prosjekter må prioritere å levere nødvendig informasjon herunder informasjonsmodeller som representerer det som faktisk er bygget.</p>`
+  },
+  {
+    id: "pir", abbr: "PIR", name: "Project Information Requirements",
+    category: "iso19650",
+    description: `<p>PIR forklarer informasjonen som trengs for å svare på strategiske mål hos bestilleren i forbindelse med et bestemt prosjekt.</p>
+    <p>Et sett av informasjonskrav bør utarbeides for hver av bestillerens hovedbeslutningspunkter i løpet av prosjektet.</p>`
+  },
+  {
+    id: "eir", abbr: "EIR", name: "Exchange Information Requirements",
+    category: "iso19650",
+    description: `<p>Sammenstilling av informasjonskrav for en avtale, inkludert OIR, AIR og PIR.</p>
+    <p>EIR definerer på et detaljert nivå hvilken informasjon som skal leveres og utveksles mellom aktører. Omfatter informasjonsstandard, metoder, prosedyrer, informasjonsnivå, informasjonsprotokoll, delte ressurser og CDE-beskrivelse.</p>`
+  },
+  {
+    id: "bep", abbr: "BEP", name: "BIM Execution Plan",
+    category: "iso19650",
+    description: `<p>En plan som beskriver hvordan informasjon skal forvaltes og utveksles i prosjektet i henhold til kravene uttrykt i EIR.</p>
+    <p>BEP sikrer at alle parter er enige om hvordan leverandørgruppen skal levere på bestillers krav. Ledende leverandørs prosjektleder er ansvarlig for at BEP utarbeides.</p>`
+  },
+  {
+    id: "loin", abbr: "LOIN", name: "Level of Information Need",
+    category: "iso19650",
+    description: `<p>Informasjonsnivå beskriver nivået av informasjon som trengs for å møte spesifikke behov i et prosjekt. Definerer alle perspektiver til konkret informasjon.</p>
+    <p>Skal alltid beskrive et konkret formål, hvem som skal levere, når og hvordan. Kan beskrive krav til geometrisk, alfanumerisk informasjon og dokumentasjon.</p>`
+  },
+  {
+    id: "cde", abbr: "CDE", name: "Common Data Environment",
+    category: "iso19650",
+    description: `<p>En delt digital plattform for lagring og utveksling av prosjektinformasjon. CDE sikrer at alle prosjektaktører har tilgang til den samme informasjonen.</p>
+    <p>Bestillers IT-ansvarlig eller CDE-ansvarlige er ansvarlig for å administrere og vedlikeholde CDE.</p>`
+  },
+  {
+    id: "tidp", abbr: "TIDP", name: "Task Information Delivery Plan",
+    category: "iso19650",
+    description: `<p>En detaljert plan som beskriver hva slags informasjon som skal leveres, av hvem, og når i prosjektet.</p>
+    <p>TIDP er viktig for å sikre at all nødvendig informasjon blir levert til rett tid. Hver enkelt leverandør er ansvarlig for sin TIDP.</p>`
+  },
+  {
+    id: "midp", abbr: "MIDP", name: "Master Information Delivery Plan",
+    category: "iso19650",
+    description: `<p>En overordnet plan som samler alle delplaner (TIDP) for levering av informasjon i prosjektet.</p>
+    <p>MIDP gir en samlet oversikt over informasjonsleveranser. Prosjektlederen eller BIM-manageren er ansvarlig for MIDP.</p>`
+  },
+
+  // NS 8360-begreper
+  {
+    id: "lod", abbr: "LOD", name: "Level of Development",
+    category: "ns8360",
+    description: `<p>Beskriver krav til stegvis berikelse og modenhet av modell med informasjon. LOD sikrer at informasjon i modellen utvikles på en avtalt måte.</p>
+    <p>LOD beskrives av informasjonsnivå (LOIN) og hovedplan for levering av informasjon (MIDP).</p>`
+  },
+  {
+    id: "prostatuskode", abbr: "PSK", name: "Prosesstatuskode",
+    category: "ns8360",
+    description: `<p>En kode som brukes til å angi status for en prosess eller aktivitet, for eksempel om den er under arbeid, ferdig eller godkjent.</p>
+    <p>Prosesstatuskoder er viktige for å overvåke og styre fremdriften i prosjektet.</p>`
+  },
+  {
+    id: "duplikat", abbr: "DuplicateOwnedBy", name: "Duplikat objekt",
+    category: "ns8360",
+    description: `<p>Egenskapen indikerer at objektet er en kopi, typisk i arkitektfagets modell, og at et annet fag er ansvarlig for å prosjektere og dokumentere objektet.</p>
+    <p>Verdien angis med fagforkortelse: ARK, LARK, IARK, RIB, RIBr, RIV, RIVA, RIE etc.</p>
+    <p><em>Egenskapssett: NONS_Process.DuplicateOwnedBy</em></p>`
+  },
+  {
+    id: "egenskapssett", abbr: "EES", name: "Egendefinerte egenskapssett",
+    category: "ns8360",
+    description: `<p>Spesifikke sett med egenskaper som er definert for å møte spesielle behov i prosjektet. Egendefinerte egenskapssett er viktige for å sikre at all nødvendig informasjon er inkludert i modellen.</p>
+    <p>BIM-manager eller prosjektleder er ansvarlig for å definere og vedlikeholde disse egenskapssettene.</p>`
+  },
+  {
+    id: "prosessinfo", abbr: "EPI", name: "Egenskaper for prosessinformasjon",
+    category: "ns8360",
+    description: `<p>Spesifikke egenskaper som beskriver informasjon knyttet til ulike prosesser i prosjektet. Disse egenskapene er viktige for å sikre at prosessene er godt dokumentert og kan følges opp.</p>
+    <p>Prosjektleder eller dokumentkontroller er ansvarlig for å definere og vedlikeholde egenskapene for prosessinformasjon.</p>`
+  },
+  {
+    id: "isprocured", abbr: "IsProcured", name: "Anskaffet",
+    category: "ns8360",
+    description: `<p>En egenskap som indikerer om en spesifikk komponent, tjeneste eller ressurs er anskaffet. Dette er en binær egenskap som typisk har verdiene «Ja» eller «Nei».</p>
+    <p>Å vite om noe er anskaffet er viktig for å spore innkjøp og sikre at nødvendige ressurser er tilgjengelige når de trengs.</p>
+    <p><em>Egenskapssett: NONS_Process.IsProcured</em></p>`
+  },
+  {
+    id: "milestone", abbr: "Milestone", name: "Milepæl",
+    category: "ns8360",
+    description: `<p>En egenskap som representerer viktige hendelser eller milepæler i prosjektet. Dette kan inkludere ferdigstillelse av bestemte faser, godkjenninger, eller andre kritiske punkter i prosjektets tidslinje.</p>
+    <p>Milepæler hjelper til med å overvåke prosjektets fremdrift og sikre at det holder seg på sporet.</p>
+    <p><em>Egenskapssett: NONS_Process.Milestone</em></p>`
+  },
+  {
+    id: "controlvolume", abbr: "ControlVolume", name: "KontrollSone",
+    category: "ns8360",
+    description: `<p>En egenskap som definerer et spesifikt område eller volum innenfor prosjektet som er underlagt kontroll eller spesifikke restriksjoner. Dette kan være områder hvor det er spesielle sikkerhetskrav, kvalitetskontroller, eller andre betingelser som må overholdes.</p>
+    <p>Kontrollsoner er viktige for å sikre at spesifikke krav oppfylles innenfor definerte områder av prosjektet.</p>
+    <p><em>Egenskapssett: NONS_Process.ControlVolume</em></p>`
+  },
+
+  // Tillegg
+  {
+    id: "strukturert", abbr: "—", name: "Strukturert informasjon",
+    category: "tillegg",
+    description: `<p>Data som er organisert og formatert slik at den enkelt kan lagres, søkes, filtreres og analyseres av datamaskiner. Følger en fastsatt struktur, som tabeller eller datasett med forhåndsdefinerte felter.</p>
+    <p><strong>Eksempler:</strong> IFC-filer, datasett fra databaser, informasjon definert i en dataordbok.</p>`
+  },
+  {
+    id: "ustrukturert", abbr: "—", name: "Ustrukturert informasjon",
+    category: "tillegg",
+    description: `<p>Data som ikke er organisert på en fast måte, og som ofte ikke passer inn i en forhåndsdefinert struktur. Kan være vanskeligere å behandle med tradisjonelle metoder.</p>
+    <p><strong>Eksempler:</strong> PDF-dokumenter, e-postkommunikasjon, bilder og skisser.</p>
+    <p>Kunstig intelligens kan i noen grad avlede strukturert informasjon av ustrukturert informasjon.</p>`
+  },
+];
+
+const links = [
+  // Standards relationships
+  { source: "ifc", target: "bcf", label: "samarbeider" },
+  { source: "ifc", target: "ids", label: "valideres av" },
+  { source: "ifc", target: "bsdd", label: "berikes av" },
+  { source: "ifc", target: "validation", label: "sjekkes av" },
+  { source: "ids", target: "bsdd", label: "refererer til" },
+  { source: "bcf", target: "opencde", label: "del av API" },
+  { source: "bsdd", target: "opencde", label: "del av API" },
+  { source: "opencde", target: "cde", label: "kobler sammen" },
+
+  // ISO 19650 info flow
+  { source: "oir", target: "eir", label: "inngår i" },
+  { source: "air", target: "eir", label: "inngår i" },
+  { source: "pir", target: "eir", label: "inngår i" },
+  { source: "eir", target: "bep", label: "besvares av" },
+  { source: "eir", target: "pim", label: "definerer krav til" },
+  { source: "bep", target: "pim", label: "styrer leveranse av" },
+  { source: "pim", target: "aim", label: "overleveres til" },
+  { source: "air", target: "aim", label: "definerer krav til" },
+  { source: "loin", target: "eir", label: "del av" },
+  { source: "cde", target: "pim", label: "lagrer" },
+  { source: "cde", target: "aim", label: "lagrer" },
+  { source: "tidp", target: "midp", label: "samles i" },
+  { source: "midp", target: "bep", label: "del av" },
+
+  // NS 8360
+  { source: "lod", target: "loin", label: "beskrives av" },
+  { source: "lod", target: "midp", label: "beskrives av" },
+  { source: "prostatuskode", target: "prosessinfo", label: "type av" },
+  { source: "duplikat", target: "prosessinfo", label: "type av" },
+  { source: "isprocured", target: "prosessinfo", label: "type av" },
+  { source: "milestone", target: "prosessinfo", label: "type av" },
+  { source: "controlvolume", target: "prosessinfo", label: "type av" },
+  { source: "prosessinfo", target: "egenskapssett", label: "del av" },
+  { source: "egenskapssett", target: "pim", label: "beriker" },
+  { source: "lod", target: "pim", label: "styrer detalj i" },
+
+  // Standards ↔ ISO 19650
+  { source: "ifc", target: "pim", label: "format for" },
+  { source: "ifc", target: "aim", label: "format for" },
+  { source: "ids", target: "eir", label: "maskinlesbar del av" },
+
+  // Tillegg
+  { source: "strukturert", target: "ifc", label: "eksempel" },
+  { source: "strukturert", target: "bsdd", label: "defineres i" },
+  { source: "ustrukturert", target: "strukturert", label: "motsetning av" },
+];
+
+
+// ============================================================
+// RENDER
+// ============================================================
+
+const svg = d3.select("#svg");
+const wrapper = document.getElementById("km-wrapper");
+const width = wrapper.clientWidth;
+const height = wrapper.clientHeight;
+
+// Zoom
+const g = svg.append("g");
+const zoom = d3.zoom()
+  .scaleExtent([0.2, 4])
+  .on("zoom", (e) => g.attr("transform", e.transform));
+svg.call(zoom);
+
+// Arrow markers
+const defs = svg.append("defs");
+Object.entries(CATEGORIES).forEach(([key, cat]) => {
+  defs.append("marker")
+    .attr("id", `arrow-${key}`)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 28)
+    .attr("refY", 0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+    .append("path")
+    .attr("d", "M0,-4L10,0L0,4")
+    .attr("fill", cat.color)
+    .attr("opacity", 0.3);
+});
+
+// Glow filters
+Object.entries(CATEGORIES).forEach(([key, cat]) => {
+  const filter = defs.append("filter").attr("id", `glow-${key}`);
+  filter.append("feGaussianBlur").attr("stdDeviation", "3").attr("result", "blur");
+  filter.append("feFlood").attr("flood-color", cat.color).attr("flood-opacity", "0.15");
+  filter.append("feComposite").attr("in2", "blur").attr("operator", "in");
+  const merge = filter.append("feMerge");
+  merge.append("feMergeNode");
+  merge.append("feMergeNode").attr("in", "SourceGraphic");
+});
+
+// Simulation
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d => d.id).distance(120).strength(0.4))
+  .force("charge", d3.forceManyBody().strength(-600))
+  .force("center", d3.forceCenter(width / 2, height / 2))
+  .force("collision", d3.forceCollide().radius(40))
+  .force("x", d3.forceX(width / 2).strength(0.03))
+  .force("y", d3.forceY(height / 2).strength(0.03));
+
+// Links
+const link = g.append("g")
+  .selectAll("line")
+  .data(links)
+  .join("line")
+  .attr("class", "link");
+
+// Nodes
+const node = g.append("g")
+  .selectAll("g")
+  .data(nodes)
+  .join("g")
+  .attr("class", "node")
+  .call(d3.drag()
+    .on("start", dragStart)
+    .on("drag", dragging)
+    .on("end", dragEnd));
+
+// Node circles
+node.append("circle")
+  .attr("r", d => d.category === "standard" || d.category === "tjeneste" ? 24 : 20)
+  .attr("fill", d => {
+    const c = CATEGORIES[d.category].color;
+    return `color-mix(in srgb, ${c} 10%, #ffffff)`;
+  })
+  .attr("stroke", d => CATEGORIES[d.category].color)
+  .attr("stroke-width", 1.5)
+  .attr("filter", d => `url(#glow-${d.category})`);
+
+// Node labels (abbreviation)
+node.append("text")
+  .attr("dy", d => d.abbr === "—" ? 0 : -2)
+  .text(d => d.abbr === "—" ? "•" : d.abbr)
+  .style("font-size", d => {
+    const len = d.abbr.length;
+    if (len <= 3) return "10px";
+    if (len <= 5) return "8px";
+    return "7px";
+  });
+
+// Node name below
+node.append("text")
+  .attr("class", "node-label")
+  .attr("dy", d => (d.category === "standard" || d.category === "tjeneste" ? 24 : 20) + 14)
+  .text(d => d.name.length > 28 ? d.name.slice(0, 26) + "…" : d.name);
+
+// Simulation tick
+simulation.on("tick", () => {
+  link
+    .attr("x1", d => d.source.x)
+    .attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x)
+    .attr("y2", d => d.target.y);
+  node.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+
+const tooltip = document.getElementById("tooltip");
+const panel = document.getElementById("detail-panel");
+const activeFilters = new Set();
+
+// Helper: get visible node IDs based on active filters
+function getFilteredVisible() {
+  if (activeFilters.size === 0) return null; // null = no filter active
+  const visible = new Set();
+  nodes.forEach(n => {
+    if (activeFilters.has(n.category)) visible.add(n.id);
+  });
+  return visible;
+}
+
+// Hover
+node.on("mouseover", (event, d) => {
+  const tt = document.getElementById("tooltip");
+  document.getElementById("tt-abbr").textContent = d.abbr === "—" ? "" : d.abbr;
+  document.getElementById("tt-name").textContent = d.name;
+  tt.style.opacity = 1;
+  const rect = wrapper.getBoundingClientRect();
+  tt.style.left = (event.clientX - rect.left + 16) + "px";
+  tt.style.top = (event.clientY - rect.top - 10) + "px";
+
+  // Highlight connected
+  const connected = new Set();
+  connected.add(d.id);
+  links.forEach(l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (sid === d.id) connected.add(tid);
+    if (tid === d.id) connected.add(sid);
+  });
+
+  const filtered = getFilteredVisible();
+
+  node.classed("dimmed", n => {
+    if (filtered && !filtered.has(n.id)) return true;
+    return !connected.has(n.id);
+  });
+  link.classed("dimmed", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (filtered && (!filtered.has(sid) || !filtered.has(tid))) return true;
+    return sid !== d.id && tid !== d.id;
+  });
+  link.classed("highlighted", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (filtered && (!filtered.has(sid) || !filtered.has(tid))) return false;
+    return sid === d.id || tid === d.id;
+  });
+})
+.on("mousemove", (event) => {
+  const rect = wrapper.getBoundingClientRect();
+  tooltip.style.left = (event.clientX - rect.left + 16) + "px";
+  tooltip.style.top = (event.clientY - rect.top - 10) + "px";
+})
+.on("mouseout", () => {
+  tooltip.style.opacity = 0;
+  link.classed("highlighted", false);
+  // Re-apply filters instead of blanket reset
+  applyFilters();
+});
+
+// Click → detail panel
+node.on("click", (event, d) => {
+  event.stopPropagation();
+  openDetail(d);
+});
+
+svg.on("click", () => closeDetail());
+
+function openDetail(d) {
+  const cat = CATEGORIES[d.category];
+  document.getElementById("detail-abbr").textContent = d.abbr === "—" ? "" : d.abbr;
+  document.getElementById("detail-abbr").style.color = cat.color;
+  document.getElementById("detail-title").textContent = d.name;
+
+  const catEl = document.getElementById("detail-category");
+  catEl.textContent = cat.label;
+  catEl.style.background = `color-mix(in srgb, ${cat.color} 10%, #ffffff)`;
+  catEl.style.color = cat.color;
+
+  // Related nodes
+  const related = [];
+  links.forEach(l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (sid === d.id) {
+      const n = nodes.find(x => x.id === tid);
+      if (n) related.push({ node: n, label: l.label, dir: "→" });
+    }
+    if (tid === d.id) {
+      const n = nodes.find(x => x.id === sid);
+      if (n) related.push({ node: n, label: l.label, dir: "←" });
+    }
+  });
+
+  let relatedHTML = "";
+  if (related.length > 0) {
+    relatedHTML = `<div class="detail-section-title">Koblinger</div><div class="related-list">`;
+    related.forEach(r => {
+      const rCat = CATEGORIES[r.node.category];
+      relatedHTML += `<span class="related-tag" data-id="${r.node.id}" style="border-color: ${rCat.color}40; color: ${rCat.color}">${r.dir} ${r.node.abbr !== "—" ? r.node.abbr : r.node.name}${r.label ? ` (${r.label})` : ''}</span>`;
+    });
+    relatedHTML += `</div>`;
+  }
+
+  document.getElementById("detail-body").innerHTML =
+    d.description + relatedHTML;
+
+  // Related tag clicks
+  document.querySelectorAll(".related-tag").forEach(tag => {
+    tag.addEventListener("click", () => {
+      const target = nodes.find(n => n.id === tag.dataset.id);
+      if (target) openDetail(target);
+    });
+  });
+
+  panel.classList.add("open");
+}
+
+function closeDetail() {
+  panel.classList.remove("open");
+}
+
+document.getElementById("detail-close").addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeDetail();
+});
+
+// ============================================================
+// SEARCH
+// ============================================================
+
+const searchInput = document.getElementById("search");
+const searchDropdown = document.getElementById("search-dropdown");
+
+searchInput.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  
+  if (!q) {
+    searchDropdown.classList.remove("visible");
+    searchDropdown.innerHTML = "";
+    // Reset graph dimming (respect filters)
+    applyFilters();
+    return;
+  }
+
+  // Find matching nodes
+  const matches = nodes.filter(n =>
+    n.name.toLowerCase().includes(q) ||
+    n.abbr.toLowerCase().includes(q) ||
+    n.id.includes(q)
+  );
+
+  // Build dropdown
+  if (matches.length === 0) {
+    searchDropdown.innerHTML = `<div class="search-dropdown-empty">Ingen treff for «${e.target.value}»</div>`;
+  } else {
+    searchDropdown.innerHTML = matches.map(n => {
+      const cat = CATEGORIES[n.category];
+      const abbrDisplay = n.abbr === "—" ? "" : n.abbr;
+      return `<div class="search-dropdown-item" data-id="${n.id}">
+        <span class="sdi-dot" style="background:${cat.color}"></span>
+        <span class="sdi-abbr">${abbrDisplay}</span>
+        <span class="sdi-name">${n.name}</span>
+        <span class="sdi-cat">${cat.label}</span>
+      </div>`;
+    }).join("");
+  }
+
+  searchDropdown.classList.add("visible");
+
+  // Attach click handlers
+  searchDropdown.querySelectorAll(".search-dropdown-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const target = nodes.find(n => n.id === item.dataset.id);
+      if (target) {
+        openDetail(target);
+        searchDropdown.classList.remove("visible");
+        searchInput.value = "";
+        // Highlight only this node and its connections
+        highlightNode(target);
+      }
+    });
+  });
+
+  // Dim graph to show only matches
+  const matchIds = new Set(matches.map(n => n.id));
+  node.classed("dimmed", n => !matchIds.has(n.id));
+  link.classed("dimmed", () => true);
+  link.classed("highlighted", false);
+});
+
+// Close dropdown on outside click
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-box")) {
+    searchDropdown.classList.remove("visible");
+  }
+});
+
+// Close dropdown on Escape
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    searchDropdown.classList.remove("visible");
+    searchInput.value = "";
+    applyFilters();
+  }
+});
+
+// Helper: highlight a single node and its connections
+function highlightNode(d) {
+  const connected = new Set();
+  connected.add(d.id);
+  links.forEach(l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    if (sid === d.id) connected.add(tid);
+    if (tid === d.id) connected.add(sid);
+  });
+
+  node.classed("dimmed", n => !connected.has(n.id));
+  link.classed("dimmed", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    return sid !== d.id && tid !== d.id;
+  });
+  link.classed("highlighted", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    return sid === d.id || tid === d.id;
+  });
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+const filtersEl = document.getElementById("filters");
+
+Object.entries(CATEGORIES).forEach(([key, cat]) => {
+  const btn = document.createElement("button");
+  btn.className = "filter-btn";
+  btn.textContent = cat.label;
+  btn.style.setProperty("--cat-color", cat.color);
+  btn.addEventListener("click", () => {
+    if (activeFilters.has(key)) {
+      activeFilters.delete(key);
+      btn.classList.remove("active");
+    } else {
+      activeFilters.add(key);
+      btn.classList.add("active");
+    }
+    applyFilters();
+  });
+  filtersEl.appendChild(btn);
+});
+
+function applyFilters() {
+  if (activeFilters.size === 0) {
+    node.classed("dimmed", false);
+    link.classed("dimmed", false);
+    return;
+  }
+
+  const visible = new Set();
+  nodes.forEach(n => {
+    if (activeFilters.has(n.category)) visible.add(n.id);
+  });
+
+  node.classed("dimmed", n => !visible.has(n.id));
+  link.classed("dimmed", l => {
+    const sid = typeof l.source === "object" ? l.source.id : l.source;
+    const tid = typeof l.target === "object" ? l.target.id : l.target;
+    return !visible.has(sid) || !visible.has(tid);
+  });
+}
+
+// ============================================================
+// LEGEND & STATS
+// ============================================================
+
+const legendEl = document.getElementById("legend");
+Object.values(CATEGORIES).forEach(cat => {
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  item.innerHTML = `<div class="legend-dot" style="background:${cat.color}"></div>${cat.label}`;
+  legendEl.appendChild(item);
+});
+
+document.getElementById("stats").textContent =
+  `${nodes.length} begreper · ${links.length} koblinger`;
+
+// ============================================================
+// DRAG
+// ============================================================
+
+function dragStart(event, d) {
+  if (!event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragging(event, d) {
+  d.fx = event.x;
+  d.fy = event.y;
+}
+
+function dragEnd(event, d) {
+  if (!event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+// Initial zoom to fit
+setTimeout(() => {
+  svg.transition().duration(800).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(width * 0.05, height * 0.05).scale(0.9)
+  );
+}, 500);
+</script>
+</body>
+</html>
