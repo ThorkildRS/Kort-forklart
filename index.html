@@ -496,7 +496,7 @@
     .detail-panel { width: 100%; max-width: 100%; border-radius: 0; }
     .legend { bottom: 6px; left: 10px; gap: 8px; }
     .legend-item { font-size: 10px; }
-    .stats { display: none; }
+    .stats { display: none; }F
     .filters { gap: 4px; }
     .filter-btn { padding: 4px 10px; font-size: 11px; }
     .logo { font-size: 12px; }
@@ -588,14 +588,6 @@ const nodes = [
     description: `<p>IFC er en ISO-standard (NS-EN ISO 16739) som er adoptert både i europeisk og norsk standardisering. IFC er en internasjonal standard for byggverksinformasjon som gjør det mulig å utveksle informasjon om byggverk slik at avsender og mottaker har samme oppfatning av hva objektet er, hvor det er, hvilken type og dets egenskaper.</p>
     <p><strong>Formater:</strong> .ifc (STEP Physical Format/SPF), ifcXML m.fl.</p>
     <p><strong>Versjoner:</strong> IFC2x3, IFC4, IFC4.3 (nyeste). IFC4.3 omfatter også broer, veier, jernbaner, vannveier og havneanlegg. IFC 4.4 er under utvikling (tunnel). Neste generasjon IFC5 vil baseres på moderne datamodellarkitektur.</p>`
-  },
-  {
-    id: "bim", abbr: "BIM", name: "BIM",
-    category: "standard",
-    description: `<p>Forkortet fra Byggverksinformasjonsmodellering. Bruk av delt digital fremstilling av byggverk som pålitelig beslutningsgrunnlag. Benyttes for prosjektering, bygging og driftsprosesser.
-</p>
-    <p>Gjelder for både bygninger, samferdsel og annen infrastruktur. BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon. *Alfanumerisk = informasjon uttrykt med tall eller bokstaver</p>
-    <p>*Alfanumerisk = informasjon uttrykt med tall eller bokstaver<p>`
   },
   {
     id: "bcf", abbr: "BCF", name: "BIM Collaboration Format",
@@ -766,14 +758,6 @@ const nodes = [
     <p>Kunstig intelligens kan i noen grad avlede strukturert informasjon av ustrukturert informasjon.</p>`
   },
   {
-    id: "bim", abbr: "BIM", name: "Byggverksinformasjonsmodellering",
-    category: "tillegg",
-    description: `<p>Forkortet fra Byggverksinformasjonsmodellering. Bruk av delt digital fremstilling av byggverk som pålitelig beslutningsgrunnlag.</p>
-    <p>Benyttes for prosjektering, bygging og driftsprosesser. Gjelder for både bygninger, samferdsel og annen infrastruktur.</p>
-    <p>BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon.</p>
-    <p><em>* Alfanumerisk = informasjon uttrykt med tall eller bokstaver.</em></p>`
-  },
-  {
     id: "aapenbim", abbr: "åpenBIM", name: "åpenBIM",
     category: "tillegg",
     description: `<p>Når vi skal digitalisere bygg- og anleggsnæringen er vi avhengig av at de beste tjenester og løsninger vinner frem. Det får vi til når de kan tilbys og anskaffes uavhengig av teknologiplattform.</p>
@@ -844,10 +828,6 @@ const links = [
   { source: "ustrukturert", target: "strukturert", label: "motsetning av" },
 
   // BIM og buildingSMART
-  { source: "bim", target: "ifc", label: "benytter" },
-  { source: "bim", target: "pim", label: "grunnlag for" },
-  { source: "bim", target: "aim", label: "grunnlag for" },
-  { source: "aapenbim", target: "bim", label: "tilnærming til" },
   { source: "aapenbim", target: "ifc", label: "basert på" },
   { source: "bsi", target: "aapenbim", label: "utvikler standarder for" },
   { source: "bsi", target: "ifc", label: "utvikler" },
