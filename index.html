@@ -745,6 +745,14 @@ const nodes = [
 
   // Tillegg
   {
+    id: "bim", abbr: "BIM", name: "Byggverksinformasjonsmodellering",
+    category: "tillegg",
+    description: `<p>Forkortet fra <strong>Byggverksinformasjonsmodellering</strong>. Bruk av delt digital fremstilling av byggverk som pålitelig beslutningsgrunnlag.</p>
+    <p>Benyttes for prosjektering, bygging og driftsprosesser. Gjelder for både bygninger, samferdsel og annen infrastruktur.</p>
+    <p>BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon.</p>
+    <p><em>* Alfanumerisk = informasjon uttrykt med tall eller bokstaver</em></p>`
+  },
+  {
     id: "strukturert", abbr: "S.I", name: "Strukturert informasjon",
     category: "tillegg",
     description: `<p>Data som er organisert og formatert slik at den enkelt kan lagres, søkes, filtreres og analyseres av datamaskiner. Følger en fastsatt struktur, som tabeller eller datasett med forhåndsdefinerte felter.</p>
@@ -828,6 +836,7 @@ const links = [
   { source: "ustrukturert", target: "strukturert", label: "motsetning av" },
 
   // BIM og buildingSMART
+  { source: "bim", target: "aapenbim", label: "realiseres gjennom" },
   { source: "aapenbim", target: "ifc", label: "basert på" },
   { source: "bsi", target: "aapenbim", label: "utvikler standarder for" },
   { source: "bsi", target: "ifc", label: "utvikler" },
