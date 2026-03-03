@@ -757,6 +757,34 @@ const nodes = [
     <p><strong>Eksempler:</strong> PDF-dokumenter, e-postkommunikasjon, bilder og skisser.</p>
     <p>Kunstig intelligens kan i noen grad avlede strukturert informasjon av ustrukturert informasjon.</p>`
   },
+  {
+    id: "bim", abbr: "BIM", name: "Byggverksinformasjonsmodellering",
+    category: "tillegg",
+    description: `<p>Forkortet fra Byggverksinformasjonsmodellering. Bruk av delt digital fremstilling av byggverk som pålitelig beslutningsgrunnlag.</p>
+    <p>Benyttes for prosjektering, bygging og driftsprosesser. Gjelder for både bygninger, samferdsel og annen infrastruktur.</p>
+    <p>BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon.</p>
+    <p><em>* Alfanumerisk = informasjon uttrykt med tall eller bokstaver.</em></p>`
+  },
+  {
+    id: "aapenbim", abbr: "åpenBIM", name: "åpenBIM",
+    category: "tillegg",
+    description: `<p>Når vi skal digitalisere bygg- og anleggsnæringen er vi avhengig av at de beste tjenester og løsninger vinner frem. Det får vi til når de kan tilbys og anskaffes uavhengig av teknologiplattform.</p>
+    <p>Åpne standarder er nødvendig for å få til en fri flyt av data mellom ulike løsninger og muliggjør dermed fri konkurranse mellom tjenester og løsninger. Åpne standarder sikrer også at informasjon kan flyttes mellom plattformer. Da blir informasjonseiere ikke låst i ett økosystem.</p>
+    <p>Åpne standarder sikrer eierskap og tilgang til egen informasjon.</p>`
+  },
+  {
+    id: "bsi", abbr: "bSI", name: "buildingSMART International",
+    category: "tillegg",
+    description: `<p>En internasjonal medlemsorganisasjon, grunnlagt og eid av nasjonale/regionale Chapters.</p>
+    <p>buildingSMART International utvikler og vedlikeholder internasjonale tekniske standarder og tjenester som er sentrale i konseptet åpenBIM arbeidsflyt (openBIM Workflow).</p>`
+  },
+  {
+    id: "bsn", abbr: "bSN", name: "buildingSMART Norge",
+    category: "tillegg",
+    description: `<p>En norsk medlemsorganisasjon som jobber for at bygg- og anleggsnæringen skal digitaliseres basert på åpne standarder. buildingSMART Norge er Chapter i og dermed medeier av buildingSMART International.</p>
+    <p>buildingSMART Norge bistår medlemmene og den norske næringen med å lykkes med å bli digital basert på åpne formater og standarder. Dette gjør vi ved å være stemmen i næringen som står opp for åpne formater og standarder.</p>
+    <p>Vi organiserer alle aktive medlemmer i domener og arbeidsgrupper. Disse deler erfaringer og finner løsninger på felles utfordringer. Og vi informerer og utvikler veiledere, retningslinjer, kravspesifikasjoner og maler som forenkler bruk av åpenBIM.</p>`
+  },
 ];
 
 const links = [
@@ -806,6 +834,18 @@ const links = [
   { source: "strukturert", target: "ifc", label: "eksempel" },
   { source: "strukturert", target: "bsdd", label: "defineres i" },
   { source: "ustrukturert", target: "strukturert", label: "motsetning av" },
+
+  // BIM og buildingSMART
+  { source: "bim", target: "ifc", label: "benytter" },
+  { source: "bim", target: "pim", label: "grunnlag for" },
+  { source: "bim", target: "aim", label: "grunnlag for" },
+  { source: "aapenbim", target: "bim", label: "tilnærming til" },
+  { source: "aapenbim", target: "ifc", label: "basert på" },
+  { source: "bsi", target: "aapenbim", label: "utvikler standarder for" },
+  { source: "bsi", target: "ifc", label: "utvikler" },
+  { source: "bsi", target: "bsdd", label: "utvikler" },
+  { source: "bsn", target: "bsi", label: "chapter i" },
+  { source: "bsn", target: "aapenbim", label: "fremmer" },
 ];
 
 
