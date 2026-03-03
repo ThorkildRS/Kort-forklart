@@ -590,6 +590,17 @@ const nodes = [
     <p><strong>Versjoner:</strong> IFC2x3, IFC4, IFC4.3 (nyeste). IFC4.3 omfatter også broer, veier, jernbaner, vannveier og havneanlegg. IFC 4.4 er under utvikling (tunnel). Neste generasjon IFC5 vil baseres på moderne datamodellarkitektur.</p>`
   },
   {
+    id: "bim", abbr: "BIM", name: "BIM",
+    category: "standard",
+    description: `<p>Forkortet fra Byggverksinformasjonsmodellering. Bruk av delt digital fremstilling av byggverk som pålitelig beslutningsgrunnlag. Benyttes for prosjektering, bygging og driftsprosesser.
+Gjelder for både bygninger, samferdsel og annen infrastruktur.
+BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon.
+* Alfanumerisk = informasjon uttrykt med tall eller bokstaver.
+</p>
+    <p>Gjelder for både bygninger, samferdsel og annen infrastruktur. BIM kan omfatte geometri, alfanumerisk* informasjon og dokumentasjon. *Alfanumerisk = informasjon uttrykt med tall eller bokstaver</p>
+    <p>*Alfanumerisk = informasjon uttrykt med tall eller bokstaver<p>`
+  },
+  {
     id: "bcf", abbr: "BCF", name: "BIM Collaboration Format",
     category: "standard",
     description: `<p>BCF er et prosessformat som gjør det mulig å kommunisere saker i modellkontekst med visning av gjeldende plassering og tilknytning til aktuelle objekter.</p>
@@ -745,13 +756,13 @@ const nodes = [
 
   // Tillegg
   {
-    id: "strukturert", abbr: "—", name: "Strukturert informasjon",
+    id: "strukturert", abbr: "S.I", name: "Strukturert informasjon",
     category: "tillegg",
     description: `<p>Data som er organisert og formatert slik at den enkelt kan lagres, søkes, filtreres og analyseres av datamaskiner. Følger en fastsatt struktur, som tabeller eller datasett med forhåndsdefinerte felter.</p>
     <p><strong>Eksempler:</strong> IFC-filer, datasett fra databaser, informasjon definert i en dataordbok.</p>`
   },
   {
-    id: "ustrukturert", abbr: "—", name: "Ustrukturert informasjon",
+    id: "ustrukturert", abbr: "U.I", name: "Ustrukturert informasjon",
     category: "tillegg",
     description: `<p>Data som ikke er organisert på en fast måte, og som ofte ikke passer inn i en forhåndsdefinert struktur. Kan være vanskeligere å behandle med tradisjonelle metoder.</p>
     <p><strong>Eksempler:</strong> PDF-dokumenter, e-postkommunikasjon, bilder og skisser.</p>
